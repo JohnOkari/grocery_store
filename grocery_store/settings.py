@@ -11,21 +11,37 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 
 from pathlib import Path
+import os
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
+
+# Load environment variables from .env if present (no external deps)
+def _load_env_file():
+    env_path = BASE_DIR / '.env'
+    if env_path.exists():
+        for raw_line in env_path.read_text().splitlines():
+            line = raw_line.strip()
+            if not line or line.startswith('#') or '=' not in line:
+                continue
+            key, value = line.split('=', 1)
+            key = key.strip()
+            value = value.strip().strip('"').strip("'")
+            os.environ.setdefault(key, value)
+
+_load_env_file()
 
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-6uz6yo!-iuhl+_qsj)=s5#*=1ur97x+terkuoav7=ps5hj-4&w'
+SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-6uz6yo!-iuhl+_qsj)=s5#*=1ur97x+terkuoav7=ps5hj-4&w')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = os.getenv('DEBUG', 'True').lower() == 'true'
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = [h for h in os.getenv('ALLOWED_HOSTS', '').split(',') if h] or []
 
 
 # Application definition
@@ -79,11 +95,11 @@ WSGI_APPLICATION = 'grocery_store.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'grocery_store',
-        'USER': 'developer',
-        'PASSWORD': 'root',
-        'HOST': 'localhost',
-        'PORT': '5432',
+        'NAME': os.getenv('POSTGRES_DB', 'grocery_store'),
+        'USER': os.getenv('POSTGRES_USER', 'developer'),
+        'PASSWORD': os.getenv('POSTGRES_PASSWORD', 'root'),
+        'HOST': os.getenv('POSTGRES_HOST', 'localhost'),
+        'PORT': os.getenv('POSTGRES_PORT', '5432'),
     }
 }
 
@@ -134,12 +150,12 @@ AUTHENTICATION_BACKENDS = [
     'django.contrib.auth.backends.ModelBackend',
 ]
 
-# Replace with your values
-OIDC_RP_CLIENT_ID = "yEHLebTC0hyoqSG51MTdgP4xkwCA80Hn"
-OIDC_RP_CLIENT_SECRET = "0Rep34dlu6gDD4kPWUajgK-T5oeC8ODMp0KeDYxO9WREARGiEDst_OLKtTy-WXJg"
+# Replace with your values (loaded from environment or .env)
+OIDC_RP_CLIENT_ID = os.getenv('OIDC_RP_CLIENT_ID', "")
+OIDC_RP_CLIENT_SECRET = os.getenv('OIDC_RP_CLIENT_SECRET', "")
 
 # Your Auth0 domain (tenant). Keep the https:// prefix
-OIDC_OP_ISSUER = "https://dev-rs6bacj2kqzcptn1.us.auth0.com/"
+OIDC_OP_ISSUER = os.getenv('OIDC_OP_ISSUER', "https://dev-rs6bacj2kqzcptn1.us.auth0.com/")
 
 # Auth0 endpoints (all derived from OIDC_OP_ISSUER)
 OIDC_OP_AUTHORIZATION_ENDPOINT = OIDC_OP_ISSUER + "authorize"
@@ -158,10 +174,24 @@ LOGOUT_REDIRECT_URL = "/"
 
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
-        'mozilla_django_oidc.auth.OIDCAuthenticationBackend',
-        'rest_framework.authentication.SessionAuthentication',  # For development
+        # 'mozilla_django_oidc.auth.OIDCAuthenticationBackend',
+        # 'rest_framework.authentication.SessionAuthentication', 
+        'rest_framework.authentication.SessionAuthentication',
+        'rest_framework.authentication.BasicAuthentication',
     ],
     'DEFAULT_PERMISSION_CLASSES': [
         'rest_framework.permissions.IsAuthenticated',
     ],
 }
+
+# Email settings (console backend by default for development)
+EMAIL_BACKEND = os.getenv('EMAIL_BACKEND', 'django.core.mail.backends.console.EmailBackend')
+DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL', 'noreply@example.com')
+ADMIN_EMAIL = os.getenv('ADMIN_EMAIL', 'admin@example.com')
+
+# Africa's Talking sandbox defaults (set API key via env/secret for real sends)
+AFRICASTALKING_USERNAME = os.getenv('AFRICASTALKING_USERNAME', 'sandbox')
+# Support either AFRICASTALKING_API_KEY or AFRICASTALKING_API_KE (as requested)
+AFRICASTALKING_API_KEY = os.getenv('AFRICASTALKING_API_KEY') or os.getenv('AFRICASTALKING_API_KE', '')
+AFRICASTALKING_SENDER_ID = os.getenv('AFRICASTALKING_SENDER_ID', '')
+TEST_CUSTOMER_PHONE = os.getenv('TEST_CUSTOMER_PHONE', '')

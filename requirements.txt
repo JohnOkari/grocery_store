@@ -1,0 +1,10 @@
+Django==5.2.5
+djangorestframework==3.16.1
+django-mptt==0.17.0
+psycopg2-binary==2.9.10
+pytest==8.3.3
+pytest-django==4.9.0
+coverage==7.6.1
+pytest-cov==5.0.0
+mozilla-django-oidc==4.0.1
+
